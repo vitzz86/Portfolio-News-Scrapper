@@ -135,7 +135,6 @@
                         <canvas id="topicChart"></canvas>
                     </div>
                 </div>
-                <!-- IMPROVEMENT: Replaced Word Cloud with News Source Chart -->
                 <div class="dash-card lg:col-span-1">
                     <h2 class="text-xl font-semibold mb-4 text-white">Top 10 News Sources</h2>
                     <div class="chart-container">
@@ -186,9 +185,8 @@
         const emptyTableState = document.getElementById('emptyTableState');
         
         // --- DEPLOYMENT CHANGE ---
-        // Replace this with your live backend URL once deployed.
-        // For local testing, use: 'http://127.0.0.1:8000'
-        const API_BASE_URL = 'https://vitocs123-news-analysis-api.hf.space/'; 
+        // This is the correct, live backend URL.
+        const API_BASE_URL = 'https://vitocs123-news-analysis-api.hf.space'; 
 
         let charts = {};
         let currentArticlesData = [];
@@ -209,10 +207,7 @@
         async function handleFormSubmit(e) {
             e.preventDefault();
             
-            if (API_BASE_URL === 'https://vitocs123-news-analysis-api.hf.space/') {
-                displayError('The backend URL has not been set. Please follow the deployment guide to update the `API_BASE_URL` constant in the HTML file.');
-                return;
-            }
+            // This faulty check has been removed.
 
             setLoadingState(true);
             try {
@@ -291,7 +286,7 @@
             renderSentimentChart(articles);
             renderVolumeChart(articles);
             renderTopicChart(articles);
-            renderSourceChart(articles); // Replaced word cloud
+            renderSourceChart(articles);
             renderTopicByYearChart(articles);
         }
 
