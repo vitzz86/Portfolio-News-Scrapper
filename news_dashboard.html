@@ -188,7 +188,7 @@
         // --- DEPLOYMENT CHANGE ---
         // Replace this with your live backend URL once deployed.
         // For local testing, use: 'http://127.0.0.1:8000'
-        const API_BASE_URL = 'https://portfolio-news-scrapper.onrender.com'; 
+        const API_BASE_URL = 'https://vitocs123-news-analysis-api.hf.space/'; 
 
         let charts = {};
         let currentArticlesData = [];
@@ -209,7 +209,7 @@
         async function handleFormSubmit(e) {
             e.preventDefault();
             
-            if (API_BASE_URL === 'https://portfolio-news-scrapper.onrender.com') {
+            if (API_BASE_URL === 'https://vitocs123-news-analysis-api.hf.space/') {
                 displayError('The backend URL has not been set. Please follow the deployment guide to update the `API_BASE_URL` constant in the HTML file.');
                 return;
             }
