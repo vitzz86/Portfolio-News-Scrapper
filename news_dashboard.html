@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced News Analysis Dashboard</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS (xlsx) for Excel export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Slate 900 */
+            color: #e2e8f0; /* Slate 200 */
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        .form-input {
+            background-color: #1e293b; border: 1px solid #334155;
+            color: #e2e8f0; border-radius: 0.5rem; transition: all 0.2s;
+        }
+        .form-input:focus {
+            outline: none; border-color: #38bdf8;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+        }
+        .loading-spinner {
+            border: 4px solid #334155; border-top: 4px solid #38bdf8;
+            border-radius: 50%; width: 50px; height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .sortable-header { cursor: pointer; user-select: none; }
+        .sortable-header:hover { color: #f8fafc; }
+        .dash-card {
+            background-color: #1e293b; border: 1px solid #334155;
+            border-radius: 1rem; padding: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+        .dash-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+        }
+        .sentiment-dot {
+            display: inline-block; width: 0.75rem; height: 0.75rem;
+            border-radius: 50%; margin-right: 0.5rem;
+        }
+        .chart-container {
+            position: relative;
+            flex-grow: 1;
+            width: 100%;
+            min-height: 350px; /* Base height for charts */
+        }
+        @media (min-width: 1024px) {
+            .chart-container {
+                min-height: 400px;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        
+        <header class="text-center mb-10">
+            <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight">AI-Powered News Dashboard</h1>
+            <p class="text-lg text-slate-400 mt-2 max-w-2xl mx-auto">Analyze startup news with advanced scraping and topic detection.</p>
+        </header>
+
+        <div class="dash-card max-w-4xl mx-auto mb-8">
+            <form id="queryForm" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div class="md:col-span-1">
+                    <label for="startupNames" class="block text-sm font-medium text-slate-300 mb-1">Company Name(s)</label>
+                    <input type="text" id="startupNames" class="form-input w-full p-2.5" placeholder="e.g., xurya, techcorp" required>
+                </div>
+                <div>
+                    <label for="startDate" class="block text-sm font-medium text-slate-300 mb-1">Start Date</label>
+                    <input type="date" id="startDate" class="form-input w-full p-2.5">
+                </div>
+                <div>
+                    <label for="endDate" class="block text-sm font-medium text-slate-300 mb-1">End Date</label>
+                    <input type="date" id="endDate" class="form-input w-full p-2.5">
+                </div>
+                <button type="submit" class="md:col-span-3 w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 shadow-lg shadow-sky-500/20">
+                    Analyze News
+                </button>
+            </form>
+            <div id="errorContainer" class="mt-4"></div>
+        </div>
+
+        <div id="loader" class="hidden text-center my-12">
+            <div class="loading-spinner mx-auto"></div>
+            <p class="mt-4 text-slate-400 text-lg">Scraping and analyzing live news...</p>
+            <p class="text-slate-500">This may take longer than before. Please be patient.</p>
+        </div>
+
+        <div id="results" class="hidden">
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+                <div class="dash-card text-center col-span-2 sm:col-span-1"><h3 class="text-slate-400 text-sm font-medium">Total Articles</h3><p id="totalArticles" class="text-3xl font-bold text-white mt-1">-</p></div>
+                <div class="dash-card text-center"><h3 class="text-slate-400 text-sm font-medium">Positive</h3><p id="positiveArticles" class="text-3xl font-bold text-emerald-400 mt-1">-</p></div>
+                <div class="dash-card text-center"><h3 class="text-slate-400 text-sm font-medium">Negative</h3><p id="negativeArticles" class="text-3xl font-bold text-red-400 mt-1">-</p></div>
+                <div class="dash-card text-center"><h3 class="text-slate-400 text-sm font-medium">Avg. Sentiment</h3><p id="avgSentiment" class="text-3xl font-bold text-sky-400 mt-1">-</p></div>
+                <div class="dash-card p-0 flex items-center justify-center col-span-2 sm:col-span-3 lg:col-span-1"><button id="downloadBtn" class="w-full h-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold p-4 rounded-lg transition duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed text-base">Download Excel</button></div>
+            </div>
+
+            <!-- Visualizations Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                <!-- Row 1: Full Width Chart -->
+                <div class="dash-card lg:col-span-3">
+                    <h2 class="text-xl font-semibold mb-4 text-white">News Volume Over Time</h2>
+                    <div class="chart-container">
+                        <canvas id="volumeChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Row 2: Three Column Charts -->
+                <div class="dash-card lg:col-span-1">
+                    <h2 class="text-xl font-semibold mb-4 text-white">Sentiment Breakdown</h2>
+                    <div class="chart-container">
+                        <canvas id="sentimentChart"></canvas>
+                    </div>
+                </div>
+                <div class="dash-card lg:col-span-1">
+                    <h2 class="text-xl font-semibold mb-4 text-white">Topic Distribution</h2>
+                    <div class="chart-container">
+                        <canvas id="topicChart"></canvas>
+                    </div>
+                </div>
+                <!-- IMPROVEMENT: Replaced Word Cloud with News Source Chart -->
+                <div class="dash-card lg:col-span-1">
+                    <h2 class="text-xl font-semibold mb-4 text-white">Top 10 News Sources</h2>
+                    <div class="chart-container">
+                        <canvas id="sourceChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Row 3: Full Width Chart -->
+                <div class="dash-card lg:col-span-3">
+                    <h2 class="text-xl font-semibold mb-4 text-white">Topic Distribution by Year</h2>
+                    <div class="chart-container">
+                        <canvas id="topicByYearChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="dash-card">
+                <h2 class="text-xl font-semibold mb-4 text-white">Article Details</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-slate-300">
+                        <thead class="text-xs text-slate-400 uppercase bg-slate-700/50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 sortable-header" data-sort="date">Date ▾</th>
+                                <th scope="col" class="px-6 py-3">Source</th>
+                                <th scope="col" class="px-6 py-3">Title</th>
+                                <th scope="col" class="px-6 py-3 sortable-header" data-sort="sentiment">Sentiment</th>
+                                <th scope="col" class="px-6 py-3 sortable-header" data-sort="topic">Topic</th>
+                            </tr>
+                        </thead>
+                        <tbody id="articlesTableBody"></tbody>
+                    </table>
+                </div>
+                 <div id="emptyTableState" class="hidden text-center py-10">
+                    <svg class="mx-auto h-12 w-12 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    <h3 class="mt-2 text-sm font-medium text-slate-300">No Articles Found</h3>
+                    <p class="mt-1 text-sm text-slate-500">Try adjusting your search query or date range.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('queryForm');
+        const loader = document.getElementById('loader');
+        const resultsSection = document.getElementById('results');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const errorContainer = document.getElementById('errorContainer');
+        const emptyTableState = document.getElementById('emptyTableState');
+        
+        // --- DEPLOYMENT CHANGE ---
+        // Replace this with your live backend URL once deployed.
+        // For local testing, use: 'http://127.0.0.1:8000'
+        const API_BASE_URL = 'YOUR_BACKEND_URL_HERE'; 
+
+        let charts = {};
+        let currentArticlesData = [];
+        let currentSort = { column: 'date', direction: 'desc' };
+
+        const today = new Date().toISOString().split('T')[0];
+        const oneYearAgo = new Date();
+        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+        document.getElementById('endDate').value = today;
+        document.getElementById('startDate').value = oneYearAgo.toISOString().split('T')[0];
+        
+        form.addEventListener('submit', handleFormSubmit);
+        downloadBtn.addEventListener('click', handleDownload);
+        document.querySelectorAll('.sortable-header').forEach(header => {
+            header.addEventListener('click', () => handleSort(header.dataset.sort));
+        });
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            if (API_BASE_URL === 'YOUR_BACKEND_URL_HERE') {
+                displayError('The backend URL has not been set. Please follow the deployment guide to update the `API_BASE_URL` constant in the HTML file.');
+                return;
+            }
+
+            setLoadingState(true);
+            try {
+                const params = new URLSearchParams({ 
+                    query: document.getElementById('startupNames').value,
+                    start_date: document.getElementById('startDate').value,
+                    end_date: document.getElementById('endDate').value,
+                });
+                
+                const response = await fetch(`${API_BASE_URL}/search?${params.toString()}`);
+                if (!response.ok) throw new Error(`Network response error (Status: ${response.status})`);
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+                
+                currentArticlesData = data;
+                populateDashboard(currentArticlesData);
+            } catch (error) {
+                console.error("Fetch Error:", error);
+                displayError(`Failed to fetch news. Please ensure the backend server is running and the URL is correct. Details: ${error.message}`);
+            } finally {
+                setLoadingState(false);
+            }
+        }
+
+        function populateDashboard(articles) {
+            const hasArticles = articles && articles.length > 0;
+            resultsSection.classList.remove('hidden');
+            emptyTableState.classList.toggle('hidden', !hasArticles);
+            document.getElementById('articlesTableBody').innerHTML = '';
+            
+            clearDashboard();
+            updateSummaryMetrics(articles);
+            
+            if (hasArticles) {
+                renderAllCharts(articles);
+                sortAndRenderTable();
+            }
+        }
+
+        function setLoadingState(isLoading) {
+            loader.classList.toggle('hidden', !isLoading);
+            if (isLoading) {
+                resultsSection.classList.add('hidden');
+                errorContainer.innerHTML = '';
+                downloadBtn.disabled = true;
+                clearDashboard();
+            } else {
+                downloadBtn.disabled = currentArticlesData.length === 0;
+            }
+        }
+        
+        function displayError(message) {
+            errorContainer.innerHTML = `<div class="bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded-lg" role="alert">
+                <strong class="font-bold">Error:</strong><span class="block sm:inline ml-2">${message}</span>
+            </div>`;
+        }
+        
+        function clearDashboard() {
+            Object.values(charts).forEach(chart => chart?.destroy());
+            charts = {};
+        }
+
+        function updateSummaryMetrics(articles) {
+            const total = articles.length;
+            const positive = articles.filter(a => a.sentiment === 'POSITIVE').length;
+            const negative = articles.filter(a => a.sentiment === 'NEGATIVE').length;
+            let avgScore = total > 0 ? (articles.reduce((sum, a) => sum + (a.sentiment === 'POSITIVE' ? 1 : a.sentiment === 'NEGATIVE' ? -1 : 0), 0) / total).toFixed(2) : 0;
+            
+            document.getElementById('totalArticles').textContent = total;
+            document.getElementById('positiveArticles').textContent = positive;
+            document.getElementById('negativeArticles').textContent = negative;
+            document.getElementById('avgSentiment').textContent = avgScore;
+        }
+
+        function renderAllCharts(articles) {
+            renderSentimentChart(articles);
+            renderVolumeChart(articles);
+            renderTopicChart(articles);
+            renderSourceChart(articles); // Replaced word cloud
+            renderTopicByYearChart(articles);
+        }
+
+        const chartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { 
+                    position: 'bottom', 
+                    labels: { color: '#94a3b8', font: { size: 14 } } 
+                } 
+            },
+            scales: { 
+                x: { ticks: { color: '#94a3b8', font: { size: 12 } }, grid: { color: 'rgba(71, 85, 105, 0.5)' } }, 
+                y: { ticks: { color: '#94a3b8', font: { size: 12 } }, grid: { color: 'rgba(71, 85, 105, 0.5)' } }
+            }
+        };
+
+        function renderSentimentChart(articles) {
+            const ctx = document.getElementById('sentimentChart').getContext('2d');
+            const counts = articles.reduce((acc, a) => { acc[a.sentiment] = (acc[a.sentiment] || 0) + 1; return acc; }, {});
+            charts.sentiment = new Chart(ctx, {
+                type: 'doughnut', data: {
+                    labels: ['POSITIVE', 'NEGATIVE', 'NEUTRAL'],
+                    datasets: [{
+                        data: [counts['POSITIVE'] || 0, counts['NEGATIVE'] || 0, counts['NEUTRAL'] || 0],
+                        backgroundColor: ['#22c55e', '#ef4444', '#eab308'],
+                        borderColor: '#1e293b', borderWidth: 4, hoverOffset: 12
+                    }]
+                },
+                options: { ...chartOptions, scales: {} }
+            });
+        }
+
+        function renderVolumeChart(articles) {
+            const ctx = document.getElementById('volumeChart').getContext('2d');
+            const volumeByDate = articles.reduce((acc, a) => { if (a.date !== "Unknown") { acc[a.date] = (acc[a.date] || 0) + 1; } return acc; }, {});
+            const sortedDates = Object.keys(volumeByDate).sort((a,b) => new Date(a) - new Date(b));
+            charts.volume = new Chart(ctx, {
+                type: 'line', data: { labels: sortedDates, datasets: [{
+                    label: 'Articles per Day', data: sortedDates.map(d => volumeByDate[d]),
+                    borderColor: '#38bdf8', backgroundColor: 'rgba(56, 189, 248, 0.15)', fill: true, tension: 0.4
+                }]},
+                options: { ...chartOptions, plugins: { legend: { display: false } } }
+            });
+        }
+        
+        function renderTopicChart(articles) {
+            const ctx = document.getElementById('topicChart').getContext('2d');
+            const topicCounts = articles.reduce((acc, a) => { acc[a.topic] = (acc[a.topic] || 0) + 1; return acc; }, {});
+            const sortedTopics = Object.entries(topicCounts).sort(([,a],[,b]) => b-a).slice(0, 10);
+            charts.topic = new Chart(ctx, {
+                type: 'bar', data: {
+                    labels: sortedTopics.map(t => t[0]),
+                    datasets: [{
+                        label: 'Article Count', data: sortedTopics.map(t => t[1]),
+                        backgroundColor: ['#38bdf8', '#818cf8', '#4ade80', '#fb923c', '#facc15', '#a78bfa', '#22d3ee', '#f472b6'],
+                        borderRadius: 4
+                    }]
+                },
+                options: { ...chartOptions, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { y: { grid: { display: false } } } }
+            });
+        }
+
+        function renderSourceChart(articles) {
+            const ctx = document.getElementById('sourceChart').getContext('2d');
+            const sourceCounts = articles.reduce((acc, a) => { acc[a.source] = (acc[a.source] || 0) + 1; return acc; }, {});
+            
+            const sortedSources = Object.entries(sourceCounts)
+                .sort(([,a],[,b]) => b-a)
+                .slice(0, 10)
+                .sort(([,a],[,b]) => a-b);
+            
+            const colors = ['#38bdf8', '#818cf8', '#4ade80', '#fb923c', '#facc15', '#a78bfa', '#22d3ee', '#f472b6', '#e879f9'];
+            const backgroundColors = sortedSources.map((_, index) => {
+                if (index === sortedSources.length - 1) return '#f97316';
+                return colors[index % colors.length];
+            });
+
+            charts.source = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sortedSources.map(s => s[0]),
+                    datasets: [{
+                        label: 'Article Count',
+                        data: sortedSources.map(s => s[1]),
+                        backgroundColor: backgroundColors,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    indexAxis: 'y', 
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { 
+                            grid: { color: 'rgba(71, 85, 105, 0.5)' },
+                            ticks: { precision: 0 } 
+                        },
+                        y: { grid: { display: false } } 
+                    }
+                }
+            });
+        }
+
+        function renderTopicByYearChart(articles) {
+            const ctx = document.getElementById('topicByYearChart').getContext('2d');
+            const countsByYearTopic = articles.reduce((acc, article) => {
+                if (article.date && article.date !== 'Unknown') {
+                    const year = new Date(article.date).getFullYear();
+                    if (!acc[year]) acc[year] = {};
+                    acc[year][article.topic] = (acc[year][article.topic] || 0) + 1;
+                }
+                return acc;
+            }, {});
+
+            const years = Object.keys(countsByYearTopic).sort();
+            const topics = [...new Set(articles.map(a => a.topic))];
+            const colors = ['#38bdf8', '#818cf8', '#4ade80', '#fb923c', '#facc15', '#a78bfa', '#22d3ee', '#f472b6', '#e879f9', '#fb7185', '#6ee7b7', '#fca5a5'];
+            
+            const datasets = topics.map((topic, index) => ({
+                label: topic,
+                data: years.map(year => countsByYearTopic[year][topic] || 0),
+                backgroundColor: colors[index % colors.length],
+            }));
+
+            charts.topicByYear = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: years, datasets: datasets },
+                options: {
+                    ...chartOptions,
+                    plugins: { 
+                        legend: { 
+                            position: 'bottom', 
+                            labels: { color: '#94a3b8', font: {size: 14} } 
+                        } 
+                    },
+                    scales: {
+                        x: { stacked: true },
+                        y: { stacked: true, beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        function handleSort(column) {
+            const isAsc = currentSort.column === column && currentSort.direction === 'asc';
+            currentSort = { column, direction: isAsc ? 'desc' : 'asc' };
+            sortAndRenderTable();
+            document.querySelectorAll('.sortable-header').forEach(header => {
+                header.textContent = header.textContent.replace(/ [▾▴]/, '');
+                if (header.dataset.sort === column) header.textContent += isAsc ? ' ▾' : ' ▴';
+            });
+        }
+        
+        function sortAndRenderTable() {
+            const sorted = [...currentArticlesData].sort((a, b) => {
+                const { column, direction } = currentSort;
+                const [valA, valB] = [a[column], b[column]];
+                const comparison = column === 'date' ? new Date(valB) - new Date(valA) : String(valA).localeCompare(String(valB));
+                return direction === 'asc' ? -comparison : comparison;
+            });
+            renderArticlesTable(sorted);
+        }
+
+        function renderArticlesTable(articles) {
+            const tableBody = document.getElementById('articlesTableBody');
+            tableBody.innerHTML = articles.map(article => {
+                const sentimentConfig = {
+                    POSITIVE: { color: 'emerald', text: 'Positive' },
+                    NEGATIVE: { color: 'red', text: 'Negative' },
+                    NEUTRAL: { color: 'amber', text: 'Neutral' },
+                }[article.sentiment];
+
+                return `<tr class="border-b border-slate-700 hover:bg-slate-800/50">
+                    <td class="px-6 py-4 whitespace-nowrap">${article.date}</td>
+                    <td class="px-6 py-4">${article.source}</td>
+                    <td class="px-6 py-4 font-medium text-slate-100"><a href="${article.url}" target="_blank" rel="noopener noreferrer" class="hover:text-sky-400 transition-colors">${article.title}</a></td>
+                    <td class="px-6 py-4"><div class="flex items-center"><span class="sentiment-dot bg-${sentimentConfig.color}-500"></span>${sentimentConfig.text}</div></td>
+                    <td class="px-6 py-4"><span class="px-2 py-1 text-xs font-medium rounded-full bg-slate-700 text-slate-300">${article.topic}</span></td>
+                </tr>`;
+            }).join('');
+        }
+        
+        function handleDownload() {
+            if (currentArticlesData.length === 0) return;
+            const dataToExport = currentArticlesData.map(a => ({
+                Date: a.date, Source: a.source, Title: a.title, Sentiment: a.sentiment, 
+                Sentiment_Score: a.sentiment_score, Topic: a.topic, URL: a.url, Summary: a.summary
+            }));
+            const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+            worksheet['!cols'] = [ {wch:12}, {wch:25}, {wch:60}, {wch:12}, {wch:15}, {wch:15}, {wch:50}, {wch:80} ];
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "News Analysis");
+            const queryName = document.getElementById('startupNames').value.replace(/[\s,]+/g, '_') || 'export';
+            XLSX.writeFile(workbook, `News_Analysis_${queryName}_${today}.xlsx`);
+        }
+    </script>
+</body>
+</html>

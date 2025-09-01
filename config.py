@@ -1,0 +1,25 @@
+# ==============================
+# Keywords and Configuration
+# ==============================
+
+negative_keywords = [
+    "kerugian","loss","bangkrut","bankrupt","pailit","insolvency", "penurunan","decline","turun","decrease","defisit","deficit", "utang","hutang","debt","collapse","default","gagal bayar","non performing loan", "phk","pemutusan hubungan kerja","layoff","termination", "fired","job cuts","downsizing","salary delay","gaji telat","late salary", "pemangkasan karyawan","salary reduction","pemotongan gaji", "razia","raid","skandal","scandal","gugatan","lawsuit","legal claim", "penipuan","fraud","scam","korupsi","corruption","bribery", "investigasi","investigation","penyidikan","penggerebekan", "denda","fine","penalty","hukuman","punishment","sentence","sanksi", "pelanggaran hukum","compliance issue","regulatory breach", "boikot","boycott","kontroversi","controversy", "kecelakaan","accident","kebakaran","fire","ledakan","explosion", "gangguan layanan","service disruption","server down","data breach","kebocoran data", "hack","hacked","peretasan","cyberattack","pelanggaran privasi","privacy violation",
+]
+
+positive_keywords = [
+    "pendanaan","funding","investasi","investment", "ipo","initial public offering","listing","go public", "series a","series b","series c","unicorn","decacorn", "venture capital","vc","angel investor","private equity", "akuisisi","acquisition","merger","ekspansi","expansion","growth", "strategic partnership","kolaborasi","collaboration","partnership","kemitraan", "peluncuran produk","product launch","launch","rilis","release","new feature","fitur baru", "market entry","ekspansi pasar","global expansion","ekspansi internasional", "profit","keuntungan","benefit","laba","earnings","revenue","pendapatan meningkat", "ROI","return on investment","cash flow positif","dividen", "innovation","inovasi","technology","teknologi","digitalisasi","digitalization", "AI","artificial intelligence","kecerdasan buatan","blockchain","crypto", "fintech","edtech","healthtech","biotech","gretech", "transformasi digital","automation","otomatisasi", "award","penghargaan","recognition","rekognisi","best startup","startup terbaik", "nomination","nominasi","winner","pemenang","ranking","peringkat", "certification","sertifikasi","ISO","compliance success", "sustainability","sustainable","berkelanjutan","ESG","green energy","energi hijau", "carbon neutral","net zero","ramah lingkungan","go green", "CSR","corporate social responsibility","impact","dampak positif", "hiring","recruitment","perekrutan","lowongan","job opening","career","karir", "talent acquisition","rekrutmen talenta","expanding team","team growth", "employer of choice","tempat kerja terbaik","best workplace",
+]
+
+topic_keywords = {
+    "FUNDING": ["funding","pendanaan","investasi","investment","ipo","initial public offering","series a","series b","series c","venture capital","vc"],
+    "LAYOFFS": ["phk","pemutusan hubungan kerja","layoff","termination","fired","job cuts","downsizing","salary delay","gaji telat","late salary"],
+    "FRAUD": ["fraud","penipuan","scam","skandal","scandal","korupsi","corruption","bribery","gugatan","lawsuit","legal claim","investigasi","investigation","denda","fine","penalty","hukuman","punishment","sentence"],
+    "EXPANSION": ["ekspansi","expansion","growth","strategic partnership","kolaborasi","collaboration","partnership","kemitraan","peluncuran produk","product launch","launch","release","rilis","ekspansi pasar","new market","market entry","masuk pasar baru","merger","akuisisi","acquisition","joint venture"],
+    "FINANCIAL": ["profit","keuntungan","benefit","laba","earnings","kerugian","loss","defisit","deficit","penurunan","decline","decrease","utang","hutang","debt","insolvency","pailit","bangkrut","bankrupt","collapse"],
+    "LEGAL": ["razia","raid","hukuman","punishment","sentence","gugatan","lawsuit","legal claim","pengadilan","court case","regulasi","regulation","peraturan","compliance","kepatuhan"],
+    "HIRING": ["hiring","recruitment","perekrutan","lowongan","job opening","career","karir","talent acquisition","rekrutmen talenta","mencari karyawan","hiring spree"],
+    "TECHNOLOGY": ["innovation","inovasi","teknologi","technology","AI","artificial intelligence","kecerdasan buatan","blockchain","crypto","fintech","edtech","healthtech","biotech","digitalization","transformasi digital","platform","aplikasi","apps","software"],
+    "AWARDS": ["award","penghargaan","recognition","rekognisi","best startup","startup terbaik","nomination","nominasi","winner","pemenang","ranking","peringkat"],
+    "SUSTAINABILITY": ["sustainability","sustainable","berkelanjutan","go green","lingkungan","ESG","green energy","energi hijau","carbon neutral","net zero","ramah lingkungan"],
+    "PARTNERSHIP": ["partnership","kemitraan","kolaborasi","collaboration","strategic alliance","joint venture","kerjasama strategis","mitra","alliance","alliances"]
+}
